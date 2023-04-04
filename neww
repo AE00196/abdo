@@ -1,0 +1,50 @@
+import hashlib
+
+def md5_hash(s):
+    return hashlib.md5(s.encode('utf-8')).hexdigest()
+
+def reduce(s, i):
+    alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    new_str = ''
+    for c in s:
+        index = alphabet.find(c)
+        new_index = (index + i) % len(alphabet)
+        new_str += alphabet[new_index]
+    return new_str
+
+def generate_chain(start, chain_length, reduction_steps):
+    chain = []
+    current_hash = start
+    for i in range(chain_length):
+        chain.append(current_hash)
+        current_hash = md5_hash(reduce(current_hash, reduction_steps))
+    return (start, chain[-1], chain)
+
+def generate_table(chain_length, reduction_steps, chain_count):
+    table = {}
+    for i in range(chain_count):
+        start = reduce(str(i), reduction_steps)
+        chain = generate_chain(start, chain_length, reduction_steps)
+        table[chain[1]] = chain
+    return table
+
+def lookup_password(hashed_password, chain_length, reduction_steps, chain_count):
+    for i in range(chain_count):
+        start = reduce(str(i), reduction_steps)
+        current_hash = hashed_password
+        for j in range(chain_length):
+            if current_hash in table:
+                chain = table[current_hash]
+                for k in range(j+1, chain_length):
+                    current_hash = md5_hash(reduce(current_hash, reduction_steps))
+                    if current_hash == chain[2][k]:
+                        return chain[0]
+                break
+            current_hash = md5_hash(reduce(current_hash, reduction_steps))
+    return None
+
+# example usage
+table = generate_table(chain_length=1000, reduction_steps=5, chain_count=10000)
+hashed_password = '5f4dcc3b5aa765d61d8327deb882cf99' # 'password'
+password = lookup_password(hashed_password, chain_length=1000, reduction_steps=5, chain_count=10000)
+print('Recovered password:', password)
